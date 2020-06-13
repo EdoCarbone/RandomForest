@@ -3,6 +3,10 @@ import pickle
 from random import sample
 from math import sqrt,ceil
 import pandas as pd
+import numpy as np
+
+GINI = "gini"
+ENTROPY = "entropy"
 
 def unique_vals(rows, col):
     """Find the unique values for a column in a dataset."""
@@ -29,7 +33,7 @@ def print_leaf(counts):
 
 def is_numeric(value):
     """Test if a value is numeric."""
-    return isinstance(value, int) or isinstance(value, float)
+    return isinstance(value, (int,float))
 
 def partition(rows, question):
     """Partitions a dataset.
@@ -45,28 +49,52 @@ def partition(rows, question):
             false_rows.append(row)
     return true_rows, false_rows
 
+########################## decision tree metrics #############################
+
 def gini(rows):
     """Calculate the Gini Impurity for a list of rows.
-
-    There are a few different ways to do this, I thought this one was
-    the most concise. See:
-    https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
+    p_x = probabilities of find element of "x" class 
     """
-    counts = class_counts(rows)
+    
+    classes_count = class_counts(rows)
     impurity = 1
-    for lbl in counts: 
-        prob_of_lbl = counts[lbl] / float(len(rows))
-        impurity -= prob_of_lbl**2
+    for x in classes_count: 
+        p_x = classes_count[x] / float(len(rows))
+        impurity -= p_x**2
+    
     return impurity
 
-def gini_impurity(left, right, current_uncertainty):
+
+def entropy(rows):
+    """
+    Calculate the entropy of a dataset.
+    p_x = probabilities of find element of "x" class 
+    """
+    classes_count = class_counts(rows)
+    entropy = 0
+    for x in classes_count: 
+        p_x = classes_count[x] / float(len(rows))
+        entropy-=p_x*np.log2(p_x)
+
+    return entropy
+
+def info_gain(metrics,left, right, current_uncertainty):
     """Information Gain.
 
     The uncertainty of the starting node, minus the weighted impurity of
     two child nodes.
     """
     p = float(len(left)) / (len(left) + len(right))
-    return current_uncertainty - p * gini(left) - (1 - p) * gini(right)
+    if metrics == GINI:
+        # Calculate the information gain from this split
+        return current_uncertainty - p * gini(left) - (1 - p) * gini(right)
+               
+    if metrics == ENTROPY:
+        return current_uncertainty - p * entropy(left) - (1 - p) * entropy(right)
+            
+     
+       
+##############################################################################
 
    
 def get_input_var_pos(header,var_tree):
